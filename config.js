@@ -17,6 +17,14 @@ const config = {
     db:'',
     uri:''
   }, 
+  databases: {
+    officers: process.env.MYSQL_DB_OFFICERS,
+    wofficers: process.env.MYSQL_DB_WOFFICERS,
+    ratings: process.env.MYSQL_DB_RATINGS,
+    ratingsA: process.env.MYSQL_DB_RATINGS_A,
+    ratingsB: process.env.MYSQL_DB_RATINGS_B,
+    juniorTrainee: process.env.MYSQL_DB_JUNIOR_TRAINEE,
+  },
 };
 
 export default config;
