@@ -7,22 +7,15 @@ import { query } from "../../config/db.js";
 import config from "../../config.js";
 
 
-// const PAYCLASS_MAPPING = {
-//     1: config.databases.officers,
-//     2: config.databases.wofficers,
-//     3: config.databases.ratings,
-//     4: config.databases.ratingsA,
-//     5: config.databases.ratingsB,
-//     6: config.databases.juniorTrainee,
-// };
 const PAYCLASS_MAPPING = {
-    1: '12345',
-    2: '12345',
-    3: '12345',
-    4: '12345',
-    5: '12345',
-    6: '12345',
+    1: config.databases.officers,
+    2: config.databases.wofficers,
+    3: config.databases.ratings,
+    4: config.databases.ratingsA,
+    5: config.databases.ratingsB,
+    6: config.databases.juniorTrainee,
 };
+
 
 
 // ─── Multer setup ────────────────────────────────────────────────────────────
