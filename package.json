@@ -1,0 +1,43 @@
+{
+  "name": "navy-converter_stdnle",
+  "version": "1.0.0",
+  "description": "Standalone multi-class payroll adjustment/converter batch upload service",
+  "keywords": [
+    "adjustment",
+    "navy",
+    "payroll",
+    "converter",
+    "excel",
+    "csv"
+  ],
+  "license": "ISC",
+  "author": "Victor",
+  "type": "module",
+  "main": "server.js",
+   "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+   "dependencies": {
+    "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
+    "csv-parse": "^6.1.0",
+    "csv-parser": "^3.2.0",
+    "dotenv": "^17.2.1",
+    "exceljs": "^4.4.0",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "morgan": "^1.10.1",
+    "mssql": "^11.0.1",
+    "multer": "^2.0.2",
+    "tailwind-scrollbar-hide": "^4.0.0",
+    "serve-index": "^1.9.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.23",
+    "nodemon": "^3.1.11",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.18"
+  }
+}
