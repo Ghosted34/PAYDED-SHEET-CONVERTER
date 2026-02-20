@@ -1,12 +1,12 @@
 import mssql from "mssql";
 import cfg from "../config.js";
 
-
 const config = {
-  user:    cfg.mssql.user,
-  password:cfg.mssql.password,
-  server:   cfg.mssql.host,
-  port:     cfg.mssql.port,
+  user: cfg.mssql.user,
+  password: cfg.mssql.password,
+  server: cfg.mssql.host,
+  port: cfg.mssql.port,
+  database: cfg.databases.officers,
   options: {
     trustServerCertificate: true,
     enableArithAbort: true,
@@ -28,6 +28,7 @@ pool.on("error", (err) => {
 poolConnect
   .then(() => console.log("[DB] Connected to MSSQL"))
   .catch((err) => {
+    console.log(err);
     console.error("[DB] Connection failed:", err.message);
     process.exit(1);
   });
@@ -39,4 +40,3 @@ export async function query(sql, params = []) {
   params.forEach((val, i) => req.input(`p${i}`, val));
   return req.query(sql);
 }
-
