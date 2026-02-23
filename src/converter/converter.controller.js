@@ -149,6 +149,7 @@ export const batchUpload = async (req, res) => {
       empRows.map((e) => [e.Empl_id?.trim().toLowerCase(), e.gradelevel]),
     );
 
+
     // 4. Filter to active only + attach level
     const filtered = cleaned.filter((row) =>
       activeEmployeeSet.has(row.numb?.trim()),
@@ -230,14 +231,11 @@ export const batchUpload = async (req, res) => {
         }
 
         insertRecords.push({
-          "Service Number": row.numb,
+          "Svc. No.": row.numb,
           "Payment Type": row.code,
-          "Maker 1": "No",
           "Amount Payable": row.bpm,
-          "Maker 2": "No",
-          "Amount To Date": 0,
           "Payment Indicator": "T",
-          "Number of Months": 1,
+          "Ternor": 1,
           _sourceSheet: row._sourceSheet || row._sourcesheet || "Sheet1",
         });
       }
@@ -254,9 +252,9 @@ export const batchUpload = async (req, res) => {
 
     const outWorkbook = XLSX.utils.book_new();
     for (const [sheetName, records] of Object.entries(recordsBySheet)) {
-      utils.book_append_sheet(
+      XLSX.utils.book_append_sheet(
         outWorkbook,
-        utils.json_to_sheet(records),
+        XLSX.utils.json_to_sheet(records),
         sheetName,
       );
     }
