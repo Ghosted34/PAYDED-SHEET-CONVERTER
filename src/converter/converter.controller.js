@@ -1,4 +1,5 @@
 import multer, { diskStorage } from "multer";
+import ExcelJS from 'exceljs'
 import XLSX from "xlsx";
 import csv from "csv-parser";
 import { existsSync, mkdirSync, createReadStream, unlinkSync } from "fs";
@@ -110,7 +111,6 @@ function tryDelete(filePath) {
 
 export const batchUpload = async (req, res) => {
   const test = await query(`SELECT DB_NAME() AS db`);
-  console.log(test.recordset);
   let filePath = null;
 
   try {
@@ -250,27 +250,135 @@ export const batchUpload = async (req, res) => {
       recordsBySheet[sheet].push(clean);
     }
 
-    const outWorkbook = XLSX.utils.book_new();
+     const workbook = new ExcelJS.Workbook();
     for (const [sheetName, records] of Object.entries(recordsBySheet)) {
-      XLSX.utils.book_append_sheet(
-        outWorkbook,
-        XLSX.utils.json_to_sheet(records),
-        sheetName,
-      );
+      if (!records.length) continue;
+      const worksheet = workbook.addWorksheet(sheetName || 'Sheet 1', {
+        views: [{ state: 'frozen', ySplit: 4 }] // Freeze first 4 rows
+      });
+
+      // Add main header - Row 1
+      worksheet.mergeCells('A1:E1');
+      const mainHeader = worksheet.getCell('A1');
+      mainHeader.value = 'Nigerian Navy (Naval Headquarters)';
+      mainHeader.font = { name: 'Arial', size: 13, bold: true, color: { argb: 'FFFFFFFF' } };
+      mainHeader.alignment = { horizontal: 'center', vertical: 'middle' };
+      mainHeader.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF1F4E78' } // Dark navy blue
+      };
+      mainHeader.border = {
+        bottom: { style: 'thin', color: { argb: 'FF000000' } }
+      };
+      worksheet.getRow(1).height = 22;
+
+      // Add sub header - Row 2
+      worksheet.mergeCells('A2:E2');
+      const subHeader = worksheet.getCell('A2');
+      subHeader.value = 'CENTRAL PAY OFFICE, 23 POINT ROAD, APAPA';
+      subHeader.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FF000000' } };
+      subHeader.alignment = { horizontal: 'center', vertical: 'middle' };
+      subHeader.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFD9D9D9' } // Medium gray
+      };
+      subHeader.border = {
+        bottom: { style: 'thin', color: { argb: 'FF000000' } }
+      };
+      worksheet.getRow(2).height = 18;
+
+      // Empty row 3
+      worksheet.getRow(3).height = 5;
+      //headers comes from record
+
+      const headers = Object?.keys(records[0])
+
+      const headerRow = worksheet.getRow(4);
+      headers.forEach((header, index) => {
+        const cell = headerRow.getCell(index + 1);
+        cell.value = header;
+        cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF2E5C8A' } // Darker blue
+        };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FF000000' } },
+          left: { style: 'thin', color: { argb: 'FFFFFFFF' } },
+          bottom: { style: 'thin', color: { argb: 'FF000000' } },
+          right: { style: 'thin', color: { argb: 'FFFFFFFF' } }
+        };
+      });
+      headerRow.height = 19.5;
+
+
+
+      //add records Array<Record<any,any>>
+
+     
+      let currentRowNumber = 5;
+
+      records.forEach((record) => {
+        const row = worksheet.getRow(currentRowNumber);
+
+        headers.forEach((header, colIndex) => {
+          const cell = row.getCell(colIndex + 1);
+          cell.value = record[header];
+
+       
+          if (header === "Amount Payable" || header === "Amount To Date") {
+            cell.numFmt = '"₦"#,##0.00';
+            cell.alignment = { horizontal: "right", vertical: "middle" };
+          }
+
+          // Border for clean table look
+          cell.font = { name: 'Arial', size: 10 };
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+            left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+            bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+            right: { style: 'thin', color: { argb: 'FFD3D3D3' } }
+          };
+        });
+
+        row.height = 18;
+        currentRowNumber++;
+
+      });
+
+      // Add data validation
+      // Payment Indicator column (D)
+      worksheet.getCell('D5').dataValidation = {
+        type: 'list',
+        allowBlank: true,
+        formulae: ['"T,P"'],
+        showErrorMessage: true,
+        errorTitle: 'Invalid Payment Indicator',
+        error: 'Please select T (Temporary) or P (Permanent)'
+      };
+
+      worksheet.columns.forEach((column) => {
+       column.width = 18
+      });
+
+
     }
 
-    const buffer = XLSX.write(outWorkbook, {
-      type: "buffer",
-      bookType: "xlsx",
-    });
-
+    const buffer = await workbook.xlsx.writeBuffer()
+   
+    // Clean up file
     tryDelete(filePath);
 
     return res.status(200).json({
       message: "Batch adjustment upload completed",
       summary: results,
       file: {
-        filename: "payroll-adjustments.xlsx",
+        filename: "pay_head-adjustments.xlsx",
         data: buffer.toString("base64"),
         mimetype:
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

@@ -1,41 +1,8 @@
-tailwind.config = {
-    theme: {
-        extend: {
-            //darkMode: 'class',
-            maxWidth: { 'layout': '1440px' },
-            colors: {
-                'navy': '#1e40af',
-                'warning': '#f6b409',
-                'success': '#047014'
-            },
-            screens: {
-                'xs': '640px',   // triggers at 640px
-                'custom': '766px' // triggers at 766px
-            },
-            boxShadow: {
-                'custom': '0 2px 5px 0 rgba(0,0,0,0.08)',
-            },
-            keyframes: {
-                "grow-up": { "0%": { height: "0" }, "100%": { height: "100%" } },
-                "grow-down": { "0%": { height: "0", bottom: "0" }, "100%": { height: "100%" } },
-                "expand": { "0%": { width: "0" }, "100%": { width: "100%" } },
-            },
-            animation: {
-                "grow-up": "grow-up 0.8s ease-out forwards",
-                "grow-down": "grow-down 0.8s ease-out forwards",
-                "expand": "expand 0.8s ease-out forwards",
-            }
-        }
-    }
-};
-
-
-
-// Prevent any rendering until state is ready
 const width = window.innerWidth;
 
 window.addEventListener('DOMContentLoaded', function () {
     const body = document.body;
+    console.log('loaded')
 
 
     // Make visible with single animation
@@ -46,13 +13,14 @@ window.addEventListener('DOMContentLoaded', function () {
 });
 
 
+
 (function () {
 
 
 
     // Configuration
     const API_BASE_URL = "api/convert";
- 
+
     // DOM Elements
     const uploadBtn = document.getElementById("uploadBatchBtn");
     const cancelBatchBtn = document.getElementById("cancelBatchBtn");
@@ -156,10 +124,8 @@ window.addEventListener('DOMContentLoaded', function () {
             showErrors(`Upload failed: ${error.message}`);
         }
     });
-
-    // Show Loading
     function showLoading() {
-        successIcon.innerHTML = `<div class="h-8 w-8 border-4 border-blue-300 border-t-blue-600 rounded-full animate-spin"></div>`;
+        successIcon.innerHTML = `<div class="spinner"></div>`;
         successTitle.textContent = "Uploading...";
         successMessage.textContent = "Please wait while we process your file.";
         uploadSummary.classList.add("hidden");
@@ -170,7 +136,7 @@ window.addEventListener('DOMContentLoaded', function () {
     function showUploadSuccess(result) {
         const summary = result.summary;
 
-        successIcon.innerHTML = `<svg class="h-8 w-8 text-green-600" fill="none" stroke="currentColor" stroke-width="2"
+        successIcon.innerHTML = `<svg class="svg" fill="none" stroke="currentColor" stroke-width="2"
       viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>`;
 
         successTitle.textContent = "Upload Complete";
@@ -210,33 +176,27 @@ window.addEventListener('DOMContentLoaded', function () {
     function showErrors(errors) {
         const errorContent = document.getElementById("errorContent");
 
-        let html = '<div class="space-y-2">';
+        let html = '<div class="error-list">';
 
         if (typeof errors === "string") {
             html += `
-        <div class="bg-red-50 border border-red-200 rounded p-3">
-          <p class="text-sm text-red-600">${errors}</p>
+        <div class="error-item">
+          <p class="error-item-message">${errors}</p>
         </div>`;
         } else if (Array.isArray(errors)) {
             errors.forEach((err, index) => {
                 html += `
-          <div class="bg-red-50 border border-red-200 rounded p-3">
-            <p class="font-semibold text-red-700">Error ${index + 1}:</p>
-            ${err.row ? `<p class="text-sm">Row: ${err.row}</p>` : ""}
-            ${err.serviceNumber
-                        ? `<p class="text-sm">Service Number: ${err.serviceNumber}</p>`
-                        : ""
-                    }
-            ${err.deductionType
-                        ? `<p class="text-sm">Deduction Type: ${err.deductionType}</p>`
-                        : ""
-                    }
-            <p class="text-sm text-red-600">${err.error || err}</p>
+          <div class="error-item">
+            <p class="error-item-title">Error ${index + 1}:</p>
+            ${err.row ? `<p class="error-item-detail">Row: ${err.row}</p>` : ""}
+            ${err.serviceNumber ? `<p class="error-item-detail">Service Number: ${err.serviceNumber}</p>` : ""}
+            ${err.deductionType ? `<p class="error-item-detail">Deduction Type: ${err.deductionType}</p>` : ""}
+            <p class="error-item-message">${err.error || err}</p>
           </div>`;
             });
         }
-        html += "</div>";
 
+        html += "</div>";
         errorContent.innerHTML = html;
         errorModal.classList.remove("hidden");
     }
@@ -249,4 +209,35 @@ window.addEventListener('DOMContentLoaded', function () {
     closeErrorBtn.addEventListener("click", () => {
         errorModal.classList.add("hidden");
     });
+
+    async function checkLiveness() {
+        const dot = document.getElementById("liveDot");
+        const text = document.getElementById("liveText");
+
+        dot.className = "dot checking";
+        text.textContent = "Checking...";
+
+        try {
+            const res = await fetch("/api/ready", {
+                method: "GET",
+                cache: "no-store"
+            });
+
+            if (res.ok) {
+                dot.className = "dot online";
+                text.textContent = "Live";
+            } else {
+                throw new Error();
+            }
+        } catch (err) {
+            dot.className = "dot offline";
+            text.textContent = "Unavailable";
+        }
+    }
+
+    // Initial check
+    checkLiveness();
+
+    // Optional: check every 30 seconds
+    setInterval(checkLiveness, 30000);
 })();
