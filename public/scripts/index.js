@@ -2,11 +2,7 @@ const width = window.innerWidth;
 
 window.addEventListener('DOMContentLoaded', function () {
     const body = document.body;
-    console.log('loaded')
-
-
     // Make visible with single animation
-
     document.documentElement.classList.add('ready');
     body.classList.add('initialized');
 
