@@ -13,7 +13,7 @@ const PORT = Number(process.env.PORT || "5500");
 const ENV  = process.env.NODE_ENV || "production";
 
 
-const server = app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log("─────────────────────────────────────────────");
   console.log(`  Adjustments Service`);
   console.log(`  ENV  : ${ENV}`);

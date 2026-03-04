@@ -1,16 +1,12 @@
 import dotenv from "dotenv";
 import express from 'express'
-import path from 'path'
 import cors from 'cors'
 import helmet  from "helmet";
 import morgan from "morgan";
 import serveIndex from "serve-index";
-import { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import healthRoutes from './health/health.routes.js'
 import convertRoutes from './converter/converter.routes.js'
-    
-const __dirname = dirname(fileURLToPath(import.meta.url));
+
 
 
 const app = express();
