@@ -14,11 +14,48 @@
   "author": "Victor",
   "type": "module",
   "main": "server.js",
-   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+  "pkg": {
+    "assets": [
+      "public/**/*",
+      "src/**/*"
+    ],
+    "targets": [
+      "node18-win-x64"
+    ],
+    "outputPath": "dist"
   },
-   "dependencies": {
+  "build": {
+    "appId": "com.company.excel-processor",
+    "productName": "Excel Processor",
+    "win": {
+      "target": "portable",
+      "icon": "build/icon.ico"
+    },
+    "files": [
+      "electron.js",
+      "server.js",
+      "src/**/*",
+      "public/**/*",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "public",
+        "to": "public"
+      }
+    ]
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "pkg:test": "pkg server.js --targets node18-win-x64 --output test.exe",
+    "pkg:build": "pkg server.js --targets node18-win-x64 --output navy-converter.exe",
+    "nexe:test": "nexe server.js -t windows-x64-18.0.0 -o test.exe",
+    "nexe:build": "nexe server.js -t windows-x64-18.0.0 -o navy-converter.exe",
+    "electron:test": "electron-packager . navy-converter --platform=win32 --arch=x64 --out=dist --overwrite --prune=true --ignore=node_modules/electron-packager|node_modules/electron",
+    "electron:build": "electron-packager . navy-converter --platform=win32 --arch=x64 --out=dist --overwrite --prune=true --ignore=node_modules/electron-packager|node_modules/electron"
+  },
+  "dependencies": {
     "body-parser": "^2.2.0",
     "cors": "^2.8.5",
     "csv-parse": "^6.1.0",

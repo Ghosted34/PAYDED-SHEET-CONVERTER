@@ -1,8 +1,6 @@
-import dotenv from 'dotenv';
-import app from './src/app.js'
-import { pool } from './config/db.js';
-
-
+import dotenv from "dotenv";
+import app from "./src/app.js";
+import { pool } from "./config/db.js";
 
 // Load env variables
 dotenv.config();
@@ -10,10 +8,9 @@ console.log("Running in", process.env.NODE_ENV);
 
 const HOST = "localhost";
 const PORT = Number(process.env.PORT || "5500");
-const ENV  = process.env.NODE_ENV || "production";
+const ENV = process.env.NODE_ENV || "production";
 
-
-const server = app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, "0.0.0.0", () => {
   console.log("─────────────────────────────────────────────");
   console.log(`  Adjustments Service`);
   console.log(`  ENV  : ${ENV}`);
@@ -21,6 +18,10 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`  Health : http://${HOST}:${PORT}/health`);
   console.log(`  Live   : http://${HOST}:${PORT}/live`);
   console.log("─────────────────────────────────────────────");
+
+  if (process.platform === "win32") {
+    require("child_process").exec(`start http://localhost:${PORT}`);
+  }
 });
 
 function shutdown(signal) {
@@ -33,14 +34,17 @@ function shutdown(signal) {
     }
 
     // Close DB pool
-  
-    pool.close().then(() => {
-      console.log("[server] DB pool closed. Goodbye.");
-      process.exit(0);
-    }).catch((e) => {
-      console.error("[server] DB pool close error:", e.message);
-      process.exit(1);
-    });
+
+    pool
+      .close()
+      .then(() => {
+        console.log("[server] DB pool closed. Goodbye.");
+        process.exit(0);
+      })
+      .catch((e) => {
+        console.error("[server] DB pool close error:", e.message);
+        process.exit(1);
+      });
   });
 
   // Force exit if graceful shutdown takes too long (10s)
@@ -51,7 +55,7 @@ function shutdown(signal) {
 }
 
 process.on("SIGTERM", () => shutdown("SIGTERM"));
-process.on("SIGINT",  () => shutdown("SIGINT"));
+process.on("SIGINT", () => shutdown("SIGINT"));
 
 // Catch unhandled promise rejections so the process doesn't silently die
 process.on("unhandledRejection", (reason) => {
