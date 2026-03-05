@@ -1,68 +1,70 @@
+// server.js
+import path from "path";
+import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import app from "./src/app.js";
 import { pool } from "./config/db.js";
 
-// Load env variables
-dotenv.config();
-console.log("Running in", process.env.NODE_ENV);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-const HOST = "localhost";
-const PORT = Number(process.env.PORT || "5500");
-const ENV = process.env.NODE_ENV || "production";
+/* ------------------------------------------------ */
+/* Resolve .env Path                                */
+/* ------------------------------------------------ */
+// When packaged by electron-builder, extraResources land in
+// process.resourcesPath (e.g. /path/to/app/resources/).
+// In dev, fall back to the project root __dirname.
 
-const server = app.listen(PORT, "0.0.0.0", () => {
-  console.log("─────────────────────────────────────────────");
-  console.log(`  Adjustments Service`);
-  console.log(`  ENV  : ${ENV}`);
-  console.log(`  URL  : http://${HOST}:${PORT}`);
-  console.log(`  Health : http://${HOST}:${PORT}/health`);
-  console.log(`  Live   : http://${HOST}:${PORT}/live`);
-  console.log("─────────────────────────────────────────────");
+const envPath = app.isPackaged ?? process.env.NODE_ENV === "production"
+  ? path.join(process.resourcesPath, ".env")
+  : path.join(__dirname, ".env");
 
-  if (process.platform === "win32") {
-    require("child_process").exec(`start http://localhost:${PORT}`);
-  }
-});
+dotenv.config({ path: envPath });
 
-function shutdown(signal) {
-  console.log(`\n[server] Received ${signal}. Shutting down gracefully...`);
+console.log(`[server] Loading .env from: ${envPath}`);
 
-  server.close((err) => {
-    if (err) {
-      console.error("[server] Error during shutdown:", err);
-      process.exit(1);
-    }
+/* ------------------------------------------------ */
+/* Start Server                                     */
+/* ------------------------------------------------ */
 
-    // Close DB pool
+export const startServer = () => {
+  const HOST = "localhost";
+  const PORT = Number(process.env.PORT || "5500");
+  const ENV = process.env.NODE_ENV || "production";
 
-    pool
-      .close()
-      .then(() => {
-        console.log("[server] DB pool closed. Goodbye.");
-        process.exit(0);
-      })
-      .catch((e) => {
-        console.error("[server] DB pool close error:", e.message);
-        process.exit(1);
-      });
+  const server = app.listen(PORT, "0.0.0.0", () => {
+    console.log("─────────────────────────────────────────────");
+    console.log(`  Adjustments Service`);
+    console.log(`  ENV  : ${ENV}`);
+    console.log(`  URL  : http://${HOST}:${PORT}`);
+    console.log(`  Health : http://${HOST}:${PORT}/health`);
+    console.log(`  Live   : http://${HOST}:${PORT}/live`);
+    console.log("─────────────────────────────────────────────");
   });
 
-  // Force exit if graceful shutdown takes too long (10s)
-  setTimeout(() => {
-    console.error("[server] Graceful shutdown timed out. Forcing exit.");
-    process.exit(1);
-  }, 10_000);
+  return server;
+};
+
+/* ------------------------------------------------ */
+/* Graceful Shutdown                                */
+/* ------------------------------------------------ */
+
+export async function shutdown(server, signal = "manual") {
+  console.log(`[server] Shutting down (${signal})...`);
+
+  try {
+    if (server) {
+      await new Promise((resolve) => server.close(resolve));
+      console.log("[server] HTTP server closed.");
+    }
+
+    if (pool && typeof pool.close === "function") {
+      await pool.close();
+      console.log("[server] DB pool closed.");
+    }
+
+    console.log("[server] Shutdown complete.");
+  } catch (err) {
+    console.error("[server] Shutdown error:", err);
+  }
 }
-
-process.on("SIGTERM", () => shutdown("SIGTERM"));
-process.on("SIGINT", () => shutdown("SIGINT"));
-
-// Catch unhandled promise rejections so the process doesn't silently die
-process.on("unhandledRejection", (reason) => {
-  console.error("[server] Unhandled rejection:", reason);
-});
-
-process.on("uncaughtException", (err) => {
-  console.error("[server] Uncaught exception:", err);
-  shutdown("uncaughtException");
-});

@@ -1,5 +1,5 @@
 import mssql from "mssql";
-import cfg from "../config.js";
+import cfg from "../src/config.js";
 
 const config = {
   user: cfg.mssql.user,

@@ -5,7 +5,7 @@ import csv from "csv-parser";
 import { existsSync, mkdirSync, createReadStream, unlinkSync } from "fs";
 import { join, extname } from "path";
 import { query } from "../../config/db.js";
-import config from "../../config.js";
+import config from "../config.js";
 
 const PAYCLASS_MAPPING = {
   1: config.databases.officers,
