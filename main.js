@@ -1,7 +1,7 @@
 // main.js
 import { app, BrowserWindow } from "electron";
 import axios from "axios";
-import { startServer, shutdown } from "./server.js";
+import { startServer, shutdown } from "./electron_server.js";
 
 /* ------------------------------------------------ */
 /* Single Instance Lock                             */
@@ -143,7 +143,7 @@ app.whenReady().then(async () => {
     const { dialog } = await import("electron");
     await dialog.showErrorBox(
       "Startup Failed",
-      "The backend service failed to start. Please restart the app.\n\nIf the issue persists, contact support."
+      "The backend service failed to start. Please restart the app.\n\nIf the issue persists, contact support.",
     );
     app.quit();
     return;

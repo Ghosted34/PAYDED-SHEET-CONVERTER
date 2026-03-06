@@ -3,7 +3,9 @@
 import { config as loadEnv } from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
-import { app } from "electron";
+import pkg from "electron";
+
+const { app } = pkg;
 
 /* ------------------------------------------------ */
 /* Resolve Correct Environment Path                 */
@@ -20,7 +22,7 @@ const __dirname = path.dirname(__filename);
 
 const envPath = app?.isPackaged
   ? path.join(process.resourcesPath, ".env")
-  : path.join(__dirname, ".env");
+  : path.join(__dirname, "../.env");
 
 /* ------------------------------------------------ */
 /* Load Environment                                 */
