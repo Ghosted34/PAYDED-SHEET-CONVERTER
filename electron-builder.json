@@ -11,7 +11,7 @@
     "output": "dist"
   },
   "files": [
-    "server.js",
+    "electron_server.js",
     "main.js",
     "public/**/*",
     "config/**/*",
