@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" />
+  <title>NAVY Payhead Adjustments</title>
+
+
+
+  <!-- Favicon -->
+  <link rel="apple-touch-icon" sizes="180x180" href="photos/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="photos/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="photos/favicon-16x16.png" />
+
+  
+  <link rel="stylesheet" href="styles/styles.css" />
+</head>
+
+<body>
+
+  <div class="layout-wrapper">
+
+    <header>
+      <div>
+        <div class="brand">NAVY</div>
+      </div>
+       <div class="live-status">
+          <span id="liveDot" class="dot offline"></span>
+          <span id="liveText">Checking...</span>
+        </div>
+    </header>
+
+    <div class="content-transition">
+
+      <!-- Main content -->
+      <main>
+
+        <!-- BATCH UPLOAD SECTION -->
+        <div class="upload-section">
+          <div class="card-wrapper">
+            <div class="card">
+
+              <!-- Notes -->
+              <div class="notes">
+                <h4>Please Note:</h4>
+                <ul>
+                  <li>Ensure your file is properly formatted before uploading.</li>
+                  <li>If you encounter any issues, please contact support.</li>
+                  <li>Duplicate Service Number + Payment/Deduction Type will not be uploaded.</li>
+                </ul>
+              </div>
+
+              <!-- Upload Form -->
+              <form id="batchUploadForm" class="upload-form">
+                <div class="form-group">
+                  <label for="batchFile" class="form-label">Upload File</label>
+                  <input type="file" id="batchFile" accept=".xlsx,.xls,.csv" class="file-input" />
+                  <p class="file-hint">
+                    Only <span>.xlsx</span>, <span>.xls</span> or <span>.csv</span> files are allowed.
+                    <button type="button" id="downloadTemplateBtn" class="template-btn">
+                      Download Template
+                    </button>
+                  </p>
+                </div>
+                <div class="btn-row">
+                  <button type="button" id="cancelBatchBtn" class="btn btn-cancel">Cancel</button>
+                  <button type="button" id="uploadBatchBtn" class="btn btn-upload">Upload</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Success Modal -->
+          <div id="successModal" class="modal-overlay hidden">
+            <div class="modal-box">
+              <div id="successIcon" class="modal-icon">
+                <svg class="h-8 w-8" style="color:#16a34a" fill="none" stroke="currentColor" stroke-width="2"
+                  viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 id="successTitle" class="modal-title">Success</h2>
+              <p id="successMessage" class="modal-message">Action completed successfully.</p>
+
+              <div id="uploadSummary" class="upload-summary hidden">
+                <span class="label">Upload Summary:</span>
+                <p>Total Unique Records: <span id="total-Records" class="text-green">0</span></p>
+                <p>Successfully Inserted: <span id="successRecords" class="text-green">0</span></p>
+                <p>Duplicate Rows: <span id="duplicateRows" class="text-red">0</span></p>
+                <p>Existing Records: <span id="existingRecords" class="text-red">0</span></p>
+                <p>Inactive Staff: <span id="inactive" class="text-red">0</span></p>
+                <div id="failedPayclasses" class="failed-section hidden">
+                  <p class="failed-title">Failed Pay Classes:</p>
+                  <div id="failedList" class="failed-list"></div>
+                </div>
+              </div>
+
+              <button id="closeModalBtn" class="btn btn-ok">OK</button>
+            </div>
+          </div>
+
+          <!-- Error Modal -->
+          <div id="errorModal" class="modal-overlay hidden">
+            <div class="modal-box">
+              <h2 class="error-modal-title">Upload Errors</h2>
+              <div id="errorContent" class="error-content"></div>
+              <div class="error-row">
+                <button id="closeErrorBtn" class="btn btn-close-error">Close</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="scripts/index.js"></script>
+</body>
+
+</html>
