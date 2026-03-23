@@ -145,8 +145,6 @@ window.addEventListener('DOMContentLoaded', function () {
         document.getElementById("inactive").textContent = summary.inactive || 0;
         document.getElementById("successRecords").textContent =
             summary.uploaded || 0;
-        document.getElementById("existingRecords").textContent =
-            summary.existing || 0;
         document.getElementById("duplicateRows").textContent =
             summary.duplicates || 0;
 
