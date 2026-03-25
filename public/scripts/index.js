@@ -144,9 +144,11 @@ window.addEventListener('DOMContentLoaded', function () {
             summary.totalUniqueRecords || 0;
         document.getElementById("inactive").textContent = summary.inactive || 0;
         document.getElementById("successRecords").textContent =
-            summary.uploaded || 0;
+            summary.computed || 0;
         document.getElementById("duplicateRows").textContent =
             summary.duplicates || 0;
+        document.getElementById("nonexist").textContent =
+            summary.non_exist || 0;
 
         // Show failed pay classes if any
         if (summary.failed && Object.keys(summary.failed).length > 0) {
