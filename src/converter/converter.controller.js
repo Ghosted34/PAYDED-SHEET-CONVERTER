@@ -135,6 +135,15 @@ function tryDelete(filePath) {
   }
 }
 
+// Normalize string to datetime if possible, else return original
+function normalizeDate(dateStr) {
+  if (!dateStr || dateStr.trim() === "" || dateStr.trim().length !== 8)
+    return null;
+  const s = dateStr.trim();
+  // expects yyyymmdd
+  return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
+}
+
 export const batchUpload = async (req, res) => {
   const test = await query(`SELECT DB_NAME() AS db`);
   let filePath = null;
@@ -159,27 +168,52 @@ export const batchUpload = async (req, res) => {
 
     // 2. Deduplicate
     const { cleaned, duplicates } = deduplicate(rawData);
+    const paramNames = cleaned.map((_, i) => `@p${i}`).join(", ");
+    // (DateLeft IS NULL OR DateLeft = '')
+    //     AND (exittype IS NULL OR exittype = '')
 
     // 3. Fetch active employees from the master DB
-    const empResult = await query(`
-      SELECT Empl_id, gradelevel, payrollclass
+    const empResult = await query(
+      `
+      SELECT Empl_id, gradelevel, payrollclass, DateLeft, exittype
       FROM dbo.hr_employees
-      WHERE (DateLeft IS NULL OR DateLeft = '')
-        AND (exittype IS NULL OR exittype = '')
-    `);
+      WHERE Empl_id IN (${paramNames})
+    `,
+      cleaned.map((r) => String(r.service_number || "").trim()),
+    );
 
     const empRows = empResult.recordset;
-    const activeEmployeeSet = new Set(empRows.map((r) => r.Empl_id?.trim()));
+    const activeEmployeeSet = new Set(
+      empRows
+        .filter((r) => !(Boolean(r.DateLeft) && Boolean(r.exittype)))
+        .map((r) => r.Empl_id?.trim()),
+    );
+    const inactiveEmployeeSet = new Set(
+      empRows
+        .filter((r) => Boolean(r.DateLeft) || Boolean(r.exittype))
+        .map((r) => r.Empl_id?.trim()),
+    );
+    const inactiveCount = inactiveEmployeeSet.size;
 
     // 4. Filter to active only + attach level
     const filtered = cleaned.filter((row) => {
-      return row.service_number && activeEmployeeSet.has(String(row.service_number)?.trim())}
-    );
+      return (
+        row.service_number &&
+        activeEmployeeSet.has(String(row.service_number)?.trim())
+      );
+    });
+
+    const inactiveFiltered = cleaned.filter((row) => {
+      return (
+        row.service_number &&
+        inactiveEmployeeSet.has(String(row.service_number)?.trim())
+      );
+    });
 
     const employeeMap = new Map(
       empRows.map((e) => [
         e.Empl_id?.trim().toLowerCase(),
-        [e.gradelevel, e.payrollclass],
+        [e.gradelevel, e.payrollclass, e.DateLeft, e.exittype],
       ]),
     );
 
@@ -191,6 +225,16 @@ export const batchUpload = async (req, res) => {
       if (payclass) row.payclass = payclass;
     }
 
+    for (const row of inactiveFiltered) {
+      const [level, payclass, dateLeft, exittype] = employeeMap.get(
+        row.service_number?.trim().toLowerCase(),
+      ) || [null, null, null, null];
+      if (level) row.level = level.slice(0, 2);
+      if (payclass) row.payclass = payclass;
+      if (dateLeft) row.dateLeft = new Date(normalizeDate(dateLeft));
+      if (exittype) row.exittype = exittype;
+    }
+
     // 5. Group by payclass
     const payclassMap = new Map();
     for (const row of filtered) {
@@ -199,9 +243,16 @@ export const batchUpload = async (req, res) => {
       payclassMap.get(pc).push(row);
     }
 
+    const inactiveMap = new Map();
+    for (const row of inactiveFiltered) {
+      const pc = row.payclass;
+      if (!inactiveMap.has(pc)) inactiveMap.set(pc, []);
+      inactiveMap.get(pc).push(row);
+    }
+
     const results = {
       totalUniqueRecords: cleaned.length,
-      inactive: cleaned.length - filtered.length,
+      inactive: inactiveCount,
       uploaded: 0,
       existing: 0,
       duplicates: duplicates.length,
@@ -253,7 +304,7 @@ export const batchUpload = async (req, res) => {
           row.amount = ppr[`one_amount${row.level}`] || 0;
         }
 
-        const sourceSheet = row._sourceSheet||row._sourcesheet||"Sheet1"
+        const sourceSheet = row._sourceSheet || row._sourcesheet || "Sheet1";
         insertRecords.push({
           "SVC. No.": row.service_number,
           "Payment Type": row.bp,
@@ -261,13 +312,25 @@ export const batchUpload = async (req, res) => {
           "Payment Indicator": "T",
           Ternor: 1,
           "Pay Class": `${row.payclass}`,
-          _sourceSheet: `${sourceSheet}-${row.payclass}` 
+          _sourceSheet: `${sourceSheet}-${row.payclass}`,
         });
       }
 
-
       if (insertRecords.length === 0) {
         continue;
+      }
+    }
+
+    for (const [payclass, rows] of inactiveMap.entries()) {
+      for (const row of rows) {
+        const sourceSheet = row._sourceSheet || row._sourcesheet || "Sheet1";
+        insertRecords.push({
+          "SVC. No.": row.service_number,
+          "Date Left": row.dateLeft || "N/A",
+          "Exit Type": row.exittype || "N/A",
+          "Pay Class": `${row.payclass}`,
+          _sourceSheet: `${sourceSheet}-INACTIVE-${row.payclass}`,
+        });
       }
     }
 
@@ -414,6 +477,8 @@ export const batchUpload = async (req, res) => {
       worksheet.columns.forEach((column) => {
         column.width = 18;
       });
+
+      worksheet.getColumn("Date Left").numFmt = "yyyy-mm-dd";
     }
 
     const buffer = await workbook.xlsx.writeBuffer();
