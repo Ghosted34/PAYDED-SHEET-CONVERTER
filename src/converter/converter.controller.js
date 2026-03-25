@@ -203,7 +203,6 @@ export const batchUpload = async (req, res) => {
     );
 
 
-    const inactiveCount = inactiveEmployeeSet.size;
 
     // 4. Filter to active only + attach level
     const filtered = cleaned.filter((row) => {
@@ -258,7 +257,7 @@ export const batchUpload = async (req, res) => {
 
     const results = {
       totalUniqueRecords: cleaned.length,
-      inactive: inactiveCount,
+      inactive: inactiveEmployeeSet.size,
       computed: 0,
       non_exist: nonExistentSet.size,
       duplicates: duplicates.length,
@@ -496,8 +495,6 @@ export const batchUpload = async (req, res) => {
       worksheet.columns.forEach((column) => {
         column.width = 18;
       });
-
-      // worksheet.getColumn("Date Left").numFmt = "yyyy-mm-dd";
     }
 
     const buffer = await workbook.xlsx.writeBuffer();
