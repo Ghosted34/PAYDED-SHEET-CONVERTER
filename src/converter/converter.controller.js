@@ -345,6 +345,7 @@ export const batchUpload = async (req, res) => {
         "SVC. No.": row.service_number,
         "Rank": row.rank || "N/A",
         "Surname": row.surname || "N/A",
+        "Other Names": row.other_names || "N/A",
         "Amount": row.amount || "N/A",
         _sourceSheet: `NONEXISTENT`,
       });
