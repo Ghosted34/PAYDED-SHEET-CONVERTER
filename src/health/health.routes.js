@@ -5,7 +5,6 @@ const router = Router();
 
 router.get("/ready", health);
 
-
 router.get("/live", liveness);
 
-export default router
+export default router;

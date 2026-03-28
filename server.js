@@ -27,6 +27,15 @@ const HOST = "localhost";
 const PORT = Number(process.env.PORT || "5500");
 const ENV = process.env.NODE_ENV || "production";
 
+pool
+  .connect()
+  .then(() => console.log("[DB] Connected to MSSQL"))
+  .catch((err) => {
+    console.log(err);
+    console.error("[DB] Connection failed:", err.message);
+    throw err;
+  });
+
 const server = app.listen(PORT, "0.0.0.0", () => {
   console.log("─────────────────────────────────────────────");
   console.log(`  Adjustments Service`);

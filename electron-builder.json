@@ -2,10 +2,7 @@
   "appId": "com.navy.converter",
   "productName": "Navy PayHead Converter",
   "asar": true,
-  "asarUnpack": [
-    "node_modules/better-sqlite3/**",
-    "node_modules/mssql/**"
-  ],
+  "asarUnpack": ["node_modules/better-sqlite3/**", "node_modules/mssql/**"],
   "forceCodeSigning": false,
   "directories": {
     "output": "dist"
@@ -13,15 +10,16 @@
   "files": [
     "electron_server.js",
     "main.js",
+    "electron-ui/**/*",
     "public/**/*",
     "config/**/*",
     "src/**/*"
   ],
   "extraResources": [
     {
-    "from": ".env.prod",
-    "to": ".env"
-  }
+      "from": ".env.example",
+      "to": ".env"
+    }
   ],
   "win": {
     "target": [

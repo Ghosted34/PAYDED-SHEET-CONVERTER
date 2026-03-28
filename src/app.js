@@ -12,16 +12,9 @@ import convertRoutes from "./converter/converter.routes.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-
-
-const publicPath = path.join(__dirname, "../public");;
-
-console.log("Public directory path:", publicPath);
+const publicPath = path.join(__dirname, "../public");
 
 const app = express();
-
-
-console.log("Running in", process.env.NODE_ENV);
 
 app.use(
   helmet.contentSecurityPolicy({
@@ -65,5 +58,4 @@ app.use((err, req, res, next) => {
   console.error(err.stack || err);
   res.status(500).json({ error: "Internal Server Error" });
 });
-
 export default app;

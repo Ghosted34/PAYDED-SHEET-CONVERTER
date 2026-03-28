@@ -2,7 +2,6 @@ import { query } from "../../config/db.js";
 
 const SERVICE_START = Date.now();
 
-
 export const health = async (req, res) => {
   const uptimeMs = Date.now() - SERVICE_START;
   const uptimeSec = Math.floor(uptimeMs / 1000);
@@ -35,7 +34,7 @@ export const health = async (req, res) => {
   };
 
   return res.status(healthy ? 200 : 503).json(payload);
-}
+};
 
 export const liveness = (req, res) => {
   return res.status(200).json({
@@ -46,7 +45,7 @@ export const liveness = (req, res) => {
       human: formatUptime(Math.floor((Date.now() - SERVICE_START) / 1000)),
     },
   });
-}
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

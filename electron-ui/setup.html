@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Initial Setup</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@600&family=Barlow:wght@300;400;500&display=swap");
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --navy: #0a1628;
+        --navy2: #0f2044;
+        --navy3: #162850;
+        --gold: #c9a84c;
+        --gold2: #e8c96a;
+        --white: #f0eeea;
+        --muted: #7a8fa8;
+        --error: #e05a5a;
+        --success: #5aaa7f;
+        --input-bg: rgba(255, 255, 255, 0.04);
+        --input-border: rgba(201, 168, 76, 0.2);
+        --input-focus: rgba(201, 168, 76, 0.6);
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        background: transparent;
+        overflow: hidden;
+        font-family: "Barlow", sans-serif;
+        -webkit-app-region: drag;
+      }
+
+      .shell {
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          160deg,
+          var(--navy2) 0%,
+          var(--navy) 70%,
+          #060e1c 100%
+        );
+        border-radius: 14px;
+        border: 1px solid rgba(201, 168, 76, 0.25);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .shell::before,
+      .shell::after {
+        content: "";
+        position: absolute;
+        width: 50px;
+        height: 50px;
+        border-color: rgba(201, 168, 76, 0.2);
+        border-style: solid;
+        pointer-events: none;
+        z-index: 0;
+      }
+      .shell::before {
+        top: 10px;
+        left: 10px;
+        border-width: 1px 0 0 1px;
+      }
+      .shell::after {
+        bottom: 10px;
+        right: 10px;
+        border-width: 0 1px 1px 0;
+      }
+
+      /* ── Header ── */
+      .header {
+        -webkit-app-region: drag;
+        padding: 20px 28px 16px;
+        border-bottom: 1px solid rgba(201, 168, 76, 0.12);
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .header-logo {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: rgba(201, 168, 76, 0.08);
+        border: 1px solid rgba(201, 168, 76, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .header-logo img {
+        width: 26px;
+        height: 26px;
+        object-fit: contain;
+        filter: drop-shadow(0 1px 4px rgba(201, 168, 76, 0.4));
+      }
+      .header-logo .fallback {
+        font-size: 1.1rem;
+      }
+
+      /* .header-text {
+      } */
+      .header-title {
+        font-family: "Cinzel", serif;
+        font-size: 0.78rem;
+        letter-spacing: 0.18em;
+        color: var(--gold2);
+        line-height: 1;
+        margin-bottom: 3px;
+      }
+      .header-sub {
+        font-size: 0.65rem;
+        font-weight: 300;
+        letter-spacing: 0.12em;
+        color: var(--muted);
+        text-transform: uppercase;
+      }
+
+      /* ── Scrollable Body ── */
+      .body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px 28px 8px;
+        -webkit-app-region: no-drag;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(201, 168, 76, 0.2) transparent;
+      }
+      .body::-webkit-scrollbar {
+        width: 4px;
+      }
+      .body::-webkit-scrollbar-thumb {
+        background: rgba(201, 168, 76, 0.2);
+        border-radius: 2px;
+      }
+
+      /* ── Intro ── */
+      .intro {
+        margin-bottom: 18px;
+        padding: 10px 14px;
+        background: rgba(201, 168, 76, 0.05);
+        border-left: 2px solid var(--gold);
+        border-radius: 0 6px 6px 0;
+      }
+      .intro p {
+        font-size: 0.72rem;
+        font-weight: 400;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+      .intro strong {
+        color: var(--white);
+        font-weight: 500;
+      }
+
+      /* ── Section Label ── */
+      .section-label {
+        font-family: "Cinzel", serif;
+        font-size: 0.6rem;
+        letter-spacing: 0.22em;
+        color: var(--gold);
+        text-transform: uppercase;
+        margin-bottom: 10px;
+        margin-top: 18px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .section-label::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: rgba(201, 168, 76, 0.15);
+      }
+
+      /* ── Field ── */
+      .field {
+        margin-bottom: 10px;
+      }
+      .field label {
+        display: block;
+        font-size: 0.65rem;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        color: var(--muted);
+        text-transform: uppercase;
+        margin-bottom: 5px;
+      }
+      .field label .required {
+        color: var(--gold);
+        margin-left: 2px;
+      }
+
+      .input-wrap {
+        position: relative;
+      }
+      .input-wrap input {
+        width: 100%;
+        background: var(--input-bg);
+        border: 1px solid var(--input-border);
+        border-radius: 6px;
+        padding: 8px 36px 8px 10px;
+        font-family: "Barlow", sans-serif;
+        font-size: 0.78rem;
+        font-weight: 400;
+        color: var(--white);
+        outline: none;
+        transition:
+          border-color 0.2s,
+          background 0.2s;
+        -webkit-app-region: no-drag;
+      }
+      .input-wrap input::placeholder {
+        color: rgba(255, 255, 255, 0.2);
+      }
+      .input-wrap input:focus {
+        border-color: var(--input-focus);
+        background: rgba(255, 255, 255, 0.06);
+      }
+      .input-wrap input.error {
+        border-color: var(--error);
+      }
+
+      .toggle-btn {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--muted);
+        font-size: 0.75rem;
+        padding: 2px 4px;
+        line-height: 1;
+        transition: color 0.2s;
+        -webkit-app-region: no-drag;
+      }
+      .toggle-btn:hover {
+        color: var(--gold);
+      }
+
+      .field-hint {
+        font-size: 0.6rem;
+        color: rgba(122, 143, 168, 0.7);
+        margin-top: 3px;
+        font-weight: 300;
+      }
+
+      .two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      /* ── Footer ── */
+      .footer {
+        padding: 14px 28px 18px;
+        border-top: 1px solid rgba(201, 168, 76, 0.12);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        flex-shrink: 0;
+        -webkit-app-region: no-drag;
+      }
+
+      .msg {
+        font-size: 0.65rem;
+        font-weight: 400;
+        text-align: center;
+        min-height: 14px;
+        letter-spacing: 0.05em;
+      }
+      .msg.error {
+        color: var(--error);
+      }
+      .msg.success {
+        color: var(--success);
+      }
+
+      .btn-save {
+        width: 100%;
+        padding: 10px;
+        background: linear-gradient(
+          135deg,
+          rgba(201, 168, 76, 0.9),
+          rgba(201, 168, 76, 0.7)
+        );
+        border: 1px solid var(--gold);
+        border-radius: 6px;
+        font-family: "Cinzel", serif;
+        font-size: 0.72rem;
+        letter-spacing: 0.18em;
+        color: var(--navy);
+        cursor: pointer;
+        transition:
+          opacity 0.2s,
+          transform 0.1s;
+        -webkit-app-region: no-drag;
+      }
+      .btn-save:hover {
+        opacity: 0.9;
+      }
+      .btn-save:active {
+        transform: scale(0.99);
+      }
+      .btn-save:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .env-path-note {
+        font-size: 0.58rem;
+        color: rgba(122, 143, 168, 0.5);
+        text-align: center;
+        font-weight: 300;
+        word-break: break-all;
+      }
+
+      /* animations */
+      .shell {
+        animation: shellIn 0.3s ease both;
+      }
+      @keyframes shellIn {
+        from {
+          opacity: 0;
+          transform: scale(0.97);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <!-- Header -->
+      <div class="header">
+        <div class="header-logo">
+          <img
+            src="./logo.png"
+            alt="Crest"
+            onerror="
+              this.style.display = 'none';
+              this.nextElementSibling.style.display = 'block';
+            "
+          />
+          <span class="fallback" style="display: none">⚓</span>
+        </div>
+        <div class="header-text">
+          <div class="header-title">NIGERIAN NAVY</div>
+          <div class="header-sub">PayHead Converter — Initial Setup</div>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div class="body">
+        <div class="intro">
+          <p>
+            <strong>First-run configuration.</strong>
+            Enter your MSSQL database credentials below. These will be saved to
+            the application's <strong>.env</strong> file and are only stored
+            locally on this machine.
+          </p>
+        </div>
+
+        <!-- Server Config -->
+        <div class="section-label">Database Server</div>
+
+        <div class="two-col">
+          <div class="field">
+            <label>Host <span class="required">*</span></label>
+            <div class="input-wrap">
+              <input
+                type="text"
+                id="MSSQL_HOST"
+                placeholder="e.g. 192.168.1.10"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+          <div class="field">
+            <label>Port <span class="required">*</span></label>
+            <div class="input-wrap">
+              <input
+                type="text"
+                id="MSSQL_PORT"
+                placeholder="e.g. 1433"
+                autocomplete="off"
+              />
+            </div>
+            <div class="field-hint">Default MSSQL port is 1433</div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="field">
+            <label>Username <span class="required">*</span></label>
+            <div class="input-wrap">
+              <input
+                type="text"
+                id="MSSQL_USER"
+                placeholder="sa"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+          <div class="field">
+            <label>Password <span class="required">*</span></label>
+            <div class="input-wrap">
+              <input
+                type="password"
+                id="MSSQL_PASSWORD"
+                placeholder="••••••••"
+                autocomplete="new-password"
+              />
+              <button
+                class="toggle-btn"
+                data-target="MSSQL_PASSWORD"
+                title="Toggle visibility"
+              >
+                👁
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Databases -->
+        <div class="section-label">Databases</div>
+
+        <div class="two-col">
+          <div class="field">
+            <label>Officers DB <span class="required">*</span></label>
+            <div class="input-wrap">
+              <input
+                type="text"
+                id="MSSQL_DB_OFFICERS"
+                placeholder="Officers database name"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+          <div class="field">
+            <label>W/Officers DB <span class="required">*</span></label>
+            <div class="input-wrap">
+              <input
+                type="text"
+                id="MSSQL_DB_WOFFICERS"
+                placeholder="Warrant Officers database name"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="field">
+            <label>Ratings DB <span class="required">*</span></label>
+            <div class="input-wrap">
+              <input
+                type="text"
+                id="MSSQL_DB_RATINGS"
+                placeholder="Ratings database name"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+          <div class="field">
+            <label>Ratings A DB <span class="required">*</span></label>
+            <div class="input-wrap">
+              <input
+                type="text"
+                id="MSSQL_DB_RATINGS_A"
+                placeholder="Ratings A database name"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="field">
+            <label>Ratings B DB <span class="required">*</span></label>
+            <div class="input-wrap">
+              <input
+                type="text"
+                id="MSSQL_DB_RATINGS_B"
+                placeholder="Ratings B database name"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+          <div class="field">
+            <label>Junior Trainee DB <span class="required">*</span></label>
+            <div class="input-wrap">
+              <input
+                type="text"
+                id="MSSQL_DB_JUNIOR_TRAINEE"
+                placeholder="Junior Trainee database name"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        <div class="msg" id="msg"></div>
+        <button class="btn-save" id="btn-save">SAVE &amp; CONTINUE</button>
+        <div class="env-path-note" id="env-path">Resolving config path…</div>
+      </div>
+    </div>
+
+    <script>
+      const REQUIRED_KEYS = [
+        "MSSQL_HOST",
+        "MSSQL_PORT",
+        "MSSQL_USER",
+        "MSSQL_PASSWORD",
+        "MSSQL_DB_OFFICERS",
+        "MSSQL_DB_WOFFICERS",
+        "MSSQL_DB_RATINGS",
+        "MSSQL_DB_RATINGS_A",
+        "MSSQL_DB_RATINGS_B",
+        "MSSQL_DB_JUNIOR_TRAINEE",
+      ];
+
+      /* ── Show resolved .env path ── */
+      window.setupAPI.getEnvPath().then((p) => {
+        document.getElementById("env-path").textContent = `Config: ${p}`;
+      });
+
+      /* ── Password toggle ── */
+      document.querySelectorAll(".toggle-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const input = document.getElementById(btn.dataset.target);
+          const isHidden = input.type === "password";
+          input.type = isHidden ? "text" : "password";
+          btn.textContent = isHidden ? "🙈" : "👁";
+        });
+      });
+
+      /* ── Save ── */
+      document
+        .getElementById("btn-save")
+        .addEventListener("click", async () => {
+          const btn = document.getElementById("btn-save");
+          const msg = document.getElementById("msg");
+
+          // Clear previous errors
+          REQUIRED_KEYS.forEach((k) => {
+            document.getElementById(k)?.classList.remove("error");
+          });
+          msg.className = "msg";
+          msg.textContent = "";
+
+          // Collect & validate
+          const values = {};
+          const missing = [];
+          for (const key of REQUIRED_KEYS) {
+            const val = document.getElementById(key)?.value.trim() ?? "";
+            if (!val) {
+              missing.push(key);
+              document.getElementById(key)?.classList.add("error");
+            } else {
+              values[key] = val;
+            }
+          }
+
+          if (missing.length) {
+            msg.className = "msg error";
+            msg.textContent = `${missing.length} required field${missing.length > 1 ? "s" : ""} missing.`;
+            return;
+          }
+
+          btn.disabled = true;
+          btn.textContent = "SAVING…";
+
+          const result = await window.setupAPI.saveEnv(values);
+
+          if (result.ok) {
+            msg.className = "msg success";
+            msg.textContent = "Saved. Starting application…";
+          } else {
+            msg.className = "msg error";
+            msg.textContent =
+              result.error ?? "Failed to save. Check permissions.";
+            btn.disabled = false;
+            btn.textContent = "SAVE & CONTINUE";
+          }
+        });
+    </script>
+  </body>
+</html>
