@@ -165,12 +165,49 @@ app.on("second-instance", () => {
 /* Graceful Shutdown                                */
 /* ------------------------------------------------ */
 
-app.on("window-all-closed", async () => {
-  console.log("[electron] App closing...");
+let isShuttingDown = false;
+
+async function performShutdown(signal) {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+
+  console.log(`[electron] Shutting down (${signal})...`);
 
   if (serverInstance) {
-    await shutdown(serverInstance, "app-close");
+    try {
+      await Promise.race([
+        shutdown(serverInstance, signal),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Shutdown timeout")), 10000)
+        )
+      ]);
+    } catch (err) {
+      console.error("[electron] Shutdown error:", err);
+    } finally {
+      serverInstance = null;
+    }
   }
+}
 
+app.on("window-all-closed", async () => {
+  await performShutdown("window-all-closed");
   app.quit();
+});
+
+app.on("before-quit", async (event) => {
+  if (!isShuttingDown && serverInstance) {
+    event.preventDefault();
+    await performShutdown("before-quit");
+    app.quit();
+  }
+});
+
+process.on("SIGTERM", async () => {
+  await performShutdown("SIGTERM");
+  process.exit(0);
+});
+
+process.on("SIGINT", async () => {
+  await performShutdown("SIGINT");
+  process.exit(0);
 });

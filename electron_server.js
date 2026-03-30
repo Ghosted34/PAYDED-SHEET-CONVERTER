@@ -25,6 +25,11 @@ dotenv.config({ path: envPath });
 console.log(`[server] Loading .env from: ${envPath}`);
 
 /* ------------------------------------------------ */
+/* Track Active Connections                         */
+/* ------------------------------------------------ */
+let connections = new Set();
+
+/* ------------------------------------------------ */
 /* Start Server                                     */
 /* ------------------------------------------------ */
 
@@ -43,6 +48,17 @@ export const startServer = () => {
     console.log("─────────────────────────────────────────────");
   });
 
+  // Track HTTP connections for force-close
+  server.on("connection", (conn) => {
+    connections.add(conn);
+    conn.on("close", () => {
+      connections.delete(conn);
+    });
+  });
+
+  // Disable keep-alive to allow faster shutdown
+  server.keepAliveTimeout = 0;
+
   return server;
 };
 
@@ -54,18 +70,65 @@ export async function shutdown(server, signal = "manual") {
   console.log(`[server] Shutting down (${signal})...`);
 
   try {
-    if (server) {
-      await new Promise((resolve) => server.close(resolve));
-      console.log("[server] HTTP server closed.");
+    // Step 1: Close MSSQL pool FIRST (important for MSSQL)
+    if (pool && pool.connected) {
+      console.log("[server] Closing MSSQL pool...");
+      await Promise.race([
+        pool.close(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("DB pool close timeout")), 3000)
+        )
+      ]);
+      console.log("[server] MSSQL pool closed.");
     }
 
-    if (pool && typeof pool.close === "function") {
-      await pool.close();
-      console.log("[server] DB pool closed.");
+    // Step 2: Close HTTP server
+    if (server && server.listening) {
+      console.log("[server] Closing HTTP server...");
+      
+      // Destroy all active connections immediately
+      console.log(`[server] Destroying ${connections.size} active connections`);
+      for (const conn of connections) {
+        conn.destroy();
+      }
+      connections.clear();
+
+      await Promise.race([
+        new Promise((resolve, reject) => {
+          server.close((err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Server close timeout")), 2000)
+        )
+      ]);
+
+      console.log("[server] HTTP server closed.");
     }
 
     console.log("[server] Shutdown complete.");
   } catch (err) {
     console.error("[server] Shutdown error:", err);
+    
+    // Force cleanup on error
+    for (const conn of connections) {
+      try {
+        conn.destroy();
+      } catch (e) {
+        // Ignore errors during force cleanup
+      }
+    }
+    connections.clear();
+
+    // Force close pool if still connected
+    if (pool && pool.connected) {
+      try {
+        await pool.close();
+      } catch (e) {
+        console.error("[server] Force pool close error:", e);
+      }
+    }
   }
 }
