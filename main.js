@@ -12,6 +12,19 @@ const __dirname = path.dirname(__filename);
 
 let isBooting = true; // set to false after main window is created
 
+process.on("uncaughtException", (err) => {
+  console.error("💥 UNCAUGHT EXCEPTION:", err);
+});
+
+process.on("unhandledRejection", (err) => {
+  console.error("💥 UNHANDLED REJECTION:", err);
+});
+
+process.on("exit", (code) => {
+  console.log("⚠️ PROCESS EXIT:", code);
+});
+
+
 /* ------------------------------------------------ */
 /* Single Instance Lock                             */
 /* ------------------------------------------------ */
@@ -187,8 +200,6 @@ function createMainWindow() {
   });
 
   mainWindow.loadURL("http://localhost:5500");
-  mainWindow.webContents.openDevTools({ mode: "detach" });
-  mainWindow.once("ready-to-show", () => mainWindow.show());
 
   mainWindow.webContents.on("render-process-gone", (event, details) => {
     console.error("[electron] Renderer process gone:", details.reason, details.exitCode);
@@ -199,16 +210,16 @@ function createMainWindow() {
   });
 
   mainWindow.once("closed", () => {
-  console.log("[electron] Main window was closed");
-});
+    console.log("[electron] Main window was closed");
+  });
 
-mainWindow.webContents.once("did-finish-load", () => {
-  console.log("[electron] Main window finished loading");
-});
+  mainWindow.webContents.once("did-finish-load", () => {
+    console.log("[electron] Main window finished loading");
+  });
 
-mainWindow.webContents.once("did-fail-load", (e, code, desc) => {
-  console.error("[electron] Main window failed to load:", code, desc);
-});
+  mainWindow.webContents.once("did-fail-load", (e, code, desc) => {
+    console.error("[electron] Main window failed to load:", code, desc);
+  });
   return mainWindow;
 }
 
@@ -291,9 +302,16 @@ app.whenReady().then(async () => {
   }
 
   // 5. Open main window, close splash
-  createMainWindow();
+  const mainWindow = createMainWindow();
+  mainWindow.once("ready-to-show", () => {
+    mainWindow.show()
+    if (!splash.isDestroyed()) splash.close();
+  });
   isBooting = false;
-  if (!splash.isDestroyed()) splash.close();
+
+  mainWindow.on("closed", () => {
+  console.log("🪟 MAIN WINDOW CLOSED");
+});
 });
 
 app.on("second-instance", () => {
@@ -303,6 +321,8 @@ app.on("second-instance", () => {
     mainWindow.focus();
   }
 });
+
+
 
 /* ------------------------------------------------ */
 /* Graceful Shutdown                                */
@@ -314,11 +334,13 @@ app.on("window-all-closed", async () => {
   console.log("[electron] App closing...");
   if (serverInstance) await shutdown(serverInstance, "app-close");
   app.quit();
-  console.log("[electron] App closing...");
+});
 
-  if (serverInstance) {
-    await shutdown(serverInstance, "app-close");
-  }
 
-  app.quit();
+app.on("render-process-gone", (event, webContents, details) => {
+  console.error("💥 RENDERER GONE:", details);
+});
+
+app.on("child-process-gone", (event, details) => {
+  console.error("💥 CHILD PROCESS GONE:", details);
 });
