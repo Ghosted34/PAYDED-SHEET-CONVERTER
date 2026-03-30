@@ -10,6 +10,8 @@ import { startServer, shutdown, resolveEnvPath } from "./electron_server.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+let isBooting = true; // set to false after main window is created
+
 /* ------------------------------------------------ */
 /* Single Instance Lock                             */
 /* ------------------------------------------------ */
@@ -180,12 +182,33 @@ function createMainWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    show: true,
+    show: false,
     webPreferences: { contextIsolation: true },
   });
 
   mainWindow.loadURL("http://localhost:5500");
+  mainWindow.webContents.openDevTools({ mode: "detach" });
   mainWindow.once("ready-to-show", () => mainWindow.show());
+
+  mainWindow.webContents.on("render-process-gone", (event, details) => {
+    console.error("[electron] Renderer process gone:", details.reason, details.exitCode);
+  });
+
+  mainWindow.on("unresponsive", () => {
+    console.error("[electron] Main window became unresponsive");
+  });
+
+  mainWindow.once("closed", () => {
+  console.log("[electron] Main window was closed");
+});
+
+mainWindow.webContents.once("did-finish-load", () => {
+  console.log("[electron] Main window finished loading");
+});
+
+mainWindow.webContents.once("did-fail-load", (e, code, desc) => {
+  console.error("[electron] Main window failed to load:", code, desc);
+});
   return mainWindow;
 }
 
@@ -269,8 +292,8 @@ app.whenReady().then(async () => {
 
   // 5. Open main window, close splash
   createMainWindow();
-  splash.close();
-  console.log("[electron] Splash has been closed");
+  isBooting = false;
+  if (!splash.isDestroyed()) splash.close();
 });
 
 app.on("second-instance", () => {
@@ -286,6 +309,11 @@ app.on("second-instance", () => {
 /* ------------------------------------------------ */
 
 app.on("window-all-closed", async () => {
+
+  if (isBooting) return; // don't quit during boot
+  console.log("[electron] App closing...");
+  if (serverInstance) await shutdown(serverInstance, "app-close");
+  app.quit();
   console.log("[electron] App closing...");
 
   if (serverInstance) {

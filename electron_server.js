@@ -2,7 +2,7 @@
 import path from "path";
 import { fileURLToPath } from "url";
 import { getPool } from "./config/db.js";
-import { freePort } from "./utils.js";
+// import { freePort } from "./utils.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -81,14 +81,14 @@ export const startServer = async () => {
   const PORT = Number(process.env.PORT || "5500");
   const ENV = process.env.NODE_ENV || "production";
 
-  freePort(PORT);
+  // freePort(PORT);
 
-  try {
-    await getPool();
-  } catch (error) {
-    console.error("[electron-server] Failed to connect to DB:", error);
-    throw error;
-  }
+  // try {
+  //   await getPool();
+  // } catch (error) {
+  //   console.error("[electron-server] Failed to connect to DB:", error);
+  //   throw error;
+  // }
 
   console.log("[election-server] after pool connection");
 
