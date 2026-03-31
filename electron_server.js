@@ -1,8 +1,8 @@
 // server.js
 import path from "path";
 import { fileURLToPath } from "url";
-import { getPool } from "./config/db.js";
-// import { freePort } from "./utils.js";
+import http from "http";
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,28 +18,9 @@ export function resolveEnvPath() {
 }
 
 /* ------------------------------------------------ */
-/* Start Server                                     */
+/* Track Active Connections                         */
 /* ------------------------------------------------ */
-
-// export const startServer = async () => {
-//   const { default: app } = await import("./src/app.js");
-
-//   const HOST = "localhost";
-//   const PORT = Number(process.env.PORT || "5500");
-//   const ENV = process.env.NODE_ENV || "production";
-
-//   const server = app.listen(PORT, "0.0.0.0", () => {
-//     console.log("─────────────────────────────────────────────");
-//     console.log(`  Adjustments Service`);
-//     console.log(`  ENV  : ${ENV}`);
-//     console.log(`  URL  : http://${HOST}:${PORT}`);
-//     console.log(`  Health : http://${HOST}:${PORT}/health`);
-//     console.log(`  Live   : http://${HOST}:${PORT}/live`);
-//     console.log("─────────────────────────────────────────────");
-//   });
-
-//   return server;
-// };
+let connections = new Set();
 
 /* ------------------------------------------------ */
 /* Graceful Shutdown                                */
@@ -49,8 +30,26 @@ export async function shutdown(server, signal = "manual") {
   console.log(`[server] Shutting down (${signal})...`);
 
   try {
-    if (server) {
-      await new Promise((resolve) => server.close(resolve));
+    if (server && server.listening) {
+
+      // Destroy all active connections immediately
+      console.log(`[server] Destroying ${connections.size} active connections`);
+      for (const conn of connections) {
+        conn.destroy();
+      }
+      connections.clear();
+      await Promise.race([
+        new Promise((resolve, reject) => {
+          server.close((err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Server close timeout")), 2000)
+        )
+      ]);
+
       console.log("[server] HTTP server closed.");
     }
 
@@ -69,7 +68,16 @@ export async function shutdown(server, signal = "manual") {
 
     console.log("[server] Shutdown complete.");
   } catch (err) {
-    console.error("[server] Shutdown error:", err);
+    // Force cleanup on error
+    for (const conn of connections) {
+      try {
+        conn.destroy();
+      } catch (e) {
+        // Ignore errors during force cleanup
+      }
+    }
+    connections.clear();
+
   }
 }
 
@@ -77,23 +85,23 @@ export const startServer = async () => {
   const { default: app } = await import("./src/app.js");
   console.log("[electron-server] importing pool");
 
-  const HOST = "localhost";
+  const HOST = "127.0.0.1";
   const PORT = Number(process.env.PORT || "5500");
   const ENV = process.env.NODE_ENV || "production";
-
-  // freePort(PORT);
-
-  // try {
-  //   await getPool();
-  // } catch (error) {
-  //   console.error("[electron-server] Failed to connect to DB:", error);
-  //   throw error;
-  // }
 
   console.log("[election-server] after pool connection");
 
   return new Promise((resolve, reject) => {
-    const server = app.listen(PORT, HOST, () => {
+    console.log("[electron-server] creating http server, PORT:", PORT, "HOST:", HOST);
+    const server = http.createServer(app);
+    console.log("[electron-server] server created, calling listen...");
+
+    server.on("connection", (conn) => {
+      connections.add(conn);
+      conn.on("close", () => connections.delete(conn));
+    });
+
+    server.listen({ port: PORT, host: HOST, exclusive: false }, () => {
       console.log("─────────────────────────────────────────────");
       console.log(`  Adjustments Service`);
       console.log(`  ENV  : ${ENV}`);
@@ -101,6 +109,7 @@ export const startServer = async () => {
       console.log(`  Health : http://${HOST}:${PORT}/health`);
       console.log(`  Live   : http://${HOST}:${PORT}/live`);
       console.log("─────────────────────────────────────────────");
+      server.keepAliveTimeout = 0;
       resolve(server);
     });
 
@@ -109,4 +118,6 @@ export const startServer = async () => {
       reject(err);
     });
   });
-};
+
+
+}

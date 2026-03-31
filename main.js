@@ -12,18 +12,6 @@ const __dirname = path.dirname(__filename);
 
 let isBooting = true; // set to false after main window is created
 
-process.on("uncaughtException", (err) => {
-  console.error("💥 UNCAUGHT EXCEPTION:", err);
-});
-
-process.on("unhandledRejection", (err) => {
-  console.error("💥 UNHANDLED REJECTION:", err);
-});
-
-process.on("exit", (code) => {
-  console.log("⚠️ PROCESS EXIT:", code);
-});
-
 
 /* ------------------------------------------------ */
 /* Single Instance Lock                             */
@@ -107,9 +95,7 @@ function envNeedsSetup(envPath) {
 /* IPC Handlers (setup window)                      */
 /* ------------------------------------------------ */
 
-// Holds the resolve fn for the setup-complete promise.
-// Set before the setup window opens, called by the handler on success.
-let _setupResolve = null;
+
 
 function registerStaticHandlers(envPath) {
   // Permanent handler — just returns the path, safe to register once.
@@ -199,27 +185,8 @@ function createMainWindow() {
     webPreferences: { contextIsolation: true },
   });
 
-  mainWindow.loadURL("http://localhost:5500");
+  mainWindow.loadURL("http://127.0.0.1:5500");
 
-  mainWindow.webContents.on("render-process-gone", (event, details) => {
-    console.error("[electron] Renderer process gone:", details.reason, details.exitCode);
-  });
-
-  mainWindow.on("unresponsive", () => {
-    console.error("[electron] Main window became unresponsive");
-  });
-
-  mainWindow.once("closed", () => {
-    console.log("[electron] Main window was closed");
-  });
-
-  mainWindow.webContents.once("did-finish-load", () => {
-    console.log("[electron] Main window finished loading");
-  });
-
-  mainWindow.webContents.once("did-fail-load", (e, code, desc) => {
-    console.error("[electron] Main window failed to load:", code, desc);
-  });
   return mainWindow;
 }
 
@@ -228,13 +195,13 @@ function createMainWindow() {
 /* ------------------------------------------------ */
 
 async function startBackend() {
-  console.log("[electron main]: starting server");
   try {
     serverInstance = await startServer();
-    console.log("[electron] Backend started.");
+
   } catch (err) {
-    console.error("[electron] Failed to start backend:", err);
-    setTimeout(startBackend, 2000);
+    console.error("[electron] Failed to start backend:", err.message, err.stack);
+    // Don't retry silently — surface the error
+    throw err;
   }
 }
 
@@ -244,9 +211,8 @@ async function startBackend() {
 
 async function waitForBackend(maxAttempts = 20, intervalMs = 200) {
   for (let i = 0; i < maxAttempts; i++) {
-    console.log(i, "index");
     try {
-      await axios.get("http://localhost:5500/api/live", { timeout: 2000 });
+      await axios.get("http://127.0.0.1:5500/api/live", { timeout: 2000 });
       console.log("[electron] Backend is ready.");
       return true;
     } catch (err) {
@@ -279,17 +245,30 @@ app.whenReady().then(async () => {
   }
 
   dotenv.config({ path: envPath, override: true });
-  console.log(`[electron] Env loaded from: ${envPath}`);
 
   // 3. Start backend (env is now populated)
+try {
   await startBackend();
+} catch (err) {
+  if (!splash.isDestroyed()) splash.close();
+  dialog.showErrorBox("Backend Failed", err.message);
+  app.quit();
+  return;
+}
 
   // 4. Wait for backend to be ready
   const ready = await waitForBackend();
   console.log("[electron-server]: Ready?", ready);
 
   if (!ready) {
-    splash.close();
+  if (!splash.isDestroyed()) splash.close();
+  dialog.showMessageBoxSync({
+    type: "warning",
+    title: "Startup Issue",
+    message: "The application did not start correctly.",
+    detail: "This can happen if the app was closed and reopened too quickly.\n\nPlease wait a few seconds and try opening the app again.",
+    buttons: ["OK"],
+  });
     console.error(
       "[electron] Backend failed to start in time. Showing error dialog.",
     );
@@ -302,16 +281,13 @@ app.whenReady().then(async () => {
   }
 
   // 5. Open main window, close splash
-  const mainWindow = createMainWindow();
+  mainWindow = createMainWindow();
+
   mainWindow.once("ready-to-show", () => {
+    isBooting = false;
     mainWindow.show()
     if (!splash.isDestroyed()) splash.close();
   });
-  isBooting = false;
-
-  mainWindow.on("closed", () => {
-  console.log("🪟 MAIN WINDOW CLOSED");
-});
 });
 
 app.on("second-instance", () => {
@@ -328,13 +304,43 @@ app.on("second-instance", () => {
 /* Graceful Shutdown                                */
 /* ------------------------------------------------ */
 
+
+
+let isShuttingDown = false;
+async function performShutdown(signal) {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+
+
+
+  if (serverInstance) {
+    try {
+      await Promise.race([
+        shutdown(serverInstance, signal),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Shutdown timeout")), 10000)
+        )
+      ]);
+    } catch (err) {
+      console.error("[electron] Shutdown error:", err);
+    } finally {
+      serverInstance = null;
+    }
+
+  }
+
+}
+
+
 app.on("window-all-closed", async () => {
 
-  if (isBooting) return; // don't quit during boot
-  console.log("[electron] App closing...");
-  if (serverInstance) await shutdown(serverInstance, "app-close");
+
+  if (isBooting) return;
+  await performShutdown("window-all-closed");
+  await new Promise((r) => setTimeout(r, 300));
   app.quit();
 });
+
 
 
 app.on("render-process-gone", (event, webContents, details) => {
@@ -343,4 +349,20 @@ app.on("render-process-gone", (event, webContents, details) => {
 
 app.on("child-process-gone", (event, details) => {
   console.error("💥 CHILD PROCESS GONE:", details);
+});
+
+app.on("before-quit", async (event) => {
+  if (!isShuttingDown && serverInstance) {
+    event.preventDefault();
+    await performShutdown("before-quit");
+    app.quit();
+  }
+});
+process.on("SIGTERM", async () => {
+  await performShutdown("SIGTERM");
+  process.exit(0);
+});
+process.on("SIGINT", async () => {
+  await performShutdown("SIGINT");
+  process.exit(0);
 });
